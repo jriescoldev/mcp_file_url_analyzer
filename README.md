@@ -119,20 +119,46 @@ Este servidor MCP permite analizar archivos individuales, directorios completos 
 
 El análisis de texto muestra número de líneas, palabras, tamaño y un preview. El análisis binario muestra tamaño, tipo y preview en hexadecimal.
 
+## Requisitos
+
+Este proyecto requiere Python 3.12 o superior. Instala las dependencias con:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Estructura del proyecto
+
+- `src/mcp_file_url_analyzer/server.py`: Código principal del servidor MCP.
+- `requirements.txt`: Dependencias del entorno.
+- `pyproject.toml`: Configuración de empaquetado y metadatos.
+- `.env`: Variables de entorno sensibles (no subir a repositorios públicos).
+
 ## Ejecución local
 
 1. Activa el entorno virtual:
    ```bash
    source .venv/bin/activate
    ```
-2. Ejecuta el servidor MCP (desde la raíz del proyecto):
+2. Instala las dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Ejecuta el servidor MCP:
    ```bash
    python -m src.mcp_file_url_analyzer.server
    ```
 
-## Configuración para VS Code
+## Dependencias principales
 
-El archivo `.vscode/mcp.json` ya está configurado para depuración y conexión desde VS Code.
+- mcp>=1.6.0
+- aiofiles
+- httpx
+- pydantic
+
+## Notas de seguridad
+
+- El archivo `.env` contiene credenciales sensibles. Asegúrate de que esté en `.gitignore`.
 
 ## Ejemplos de uso
 

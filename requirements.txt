@@ -1,0 +1,4 @@
+aiofiles
+httpx
+pydantic
+mcp>=1.6.0
