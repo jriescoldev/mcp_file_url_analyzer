@@ -1,0 +1,14 @@
+[project]
+name = "mcp-file-url-analyzer"
+version = "0.1.0"
+description = "Servidor MCP que analiza archivos locales o URLs proporcionadas"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [ "mcp>=1.6.0",]
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.scripts]
+mcp-file-url-analyzer = "mcp_file_url_analyzer:main"

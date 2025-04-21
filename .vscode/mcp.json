@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "mcp-file-url-analyzer": {
+      "type": "stdio",
+      "command": ".venv/bin/python",
+      "args": ["-m", "mcp_file_url_analyzer.server"]
+    }
+  }
+}
