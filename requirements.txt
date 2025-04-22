@@ -1,4 +1,6 @@
 aiofiles
 httpx
 pydantic
+pytest
+pytest-asyncio
 mcp>=1.6.0

@@ -1,12 +1,11 @@
 """
-Servidor MCP en Python que analiza archivos locales y URLs (texto y binario).
+MCP server in Python that analyzes local files and URLs (text and binary).
 
-- Requiere Python >=3.12
-- Instala dependencias con `pip install -r requirements.txt`
-- Ejecuta el servidor con `python -m src.mcp_file_url_analyzer.server`
-- El archivo `.env` debe estar en `.gitignore` y nunca subirse a repositorios públicos.
+- Requires Python >=3.12
+- Install dependencies with `pip install -r requirements.txt`
+- Run the server with `python -m src.mcp_file_url_analyzer.server`
 
-Más información y ejemplos en https://github.com/modelcontextprotocol/create-python-server
+More information and examples at https://github.com/modelcontextprotocol/create-python-server
 """
 
 import sys
@@ -16,11 +15,18 @@ import traceback
 import mimetypes
 import aiofiles
 import httpx
+from urllib.parse import urlparse
+import ipaddress
+import contextvars
+
 # from pydantic import AnyUrl  # No usar AnyUrl, usar str
 from mcp.server.models import InitializationOptions
 from mcp.server import NotificationOptions, Server
 import mcp.types as types
 import mcp.server.stdio
+
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_URL_SIZE = 5 * 1024 * 1024  # 5 MB
 
 notes: dict[str, str] = {}
 server = Server("mcp-file-url-analyzer")
@@ -31,6 +37,11 @@ async def handle_list_resources() -> list[types.Resource]:
     """
     List available note resources.
     Each note is exposed as a resource with a custom note:// URI scheme.
+
+    Example:
+        resources = await handle_list_resources()
+        for r in resources:
+            print(r.name)
     """
     return [
         types.Resource(
@@ -48,6 +59,10 @@ async def handle_read_resource(uri: str) -> str:
     """
     Read a specific note's content by its URI.
     The note name is extracted from the URI host component.
+
+    Example:
+        content = await handle_read_resource('note://internal/my_note')
+        print(content)
     """
     # uri es un string tipo 'note://internal/NAME'
     if not uri.startswith("note://internal/"):
@@ -63,6 +78,11 @@ async def handle_list_prompts() -> list[types.Prompt]:
     """
     List available prompts.
     Each prompt can have optional arguments to customize its behavior.
+
+    Example:
+        prompts = await handle_list_prompts()
+        for p in prompts:
+            print(p.name)
     """
     return [
         types.Prompt(
@@ -86,6 +106,10 @@ async def handle_get_prompt(
     """
     Generate a prompt by combining arguments with server state.
     The prompt includes all current notes and can be customized via arguments.
+
+    Example:
+        result = await handle_get_prompt('summarize-notes', {'style': 'detailed'})
+        print(result.description)
     """
     if name != "summarize-notes":
         raise ValueError(f"Unknown prompt: {name}")
@@ -116,6 +140,11 @@ async def handle_list_tools() -> list[types.Tool]:
     """
     List available tools.
     Each tool specifies its arguments using JSON Schema validation.
+
+    Example:
+        tools = await handle_list_tools()
+        for t in tools:
+            print(t.name)
     """
     return [
         types.Tool(
@@ -162,6 +191,10 @@ async def handle_call_tool(
     """
     Handle tool execution requests.
     Tools can modify server state and notify clients of changes.
+
+    Example:
+        result = await handle_call_tool('add-note', {'name': 'test', 'content': 'hello'})
+        print(result[0].text)
     """
     if name == "add-note":
         if not arguments:
@@ -171,7 +204,13 @@ async def handle_call_tool(
         if not note_name or not content:
             raise ValueError("Missing name or content")
         notes[note_name] = content
-        await server.request_context.session.send_resource_list_changed()
+        # Only notify if inside a real MCP request context
+        try:
+            server.request_context.session.send_resource_list_changed
+        except LookupError:
+            pass
+        else:
+            await server.request_context.session.send_resource_list_changed()
         return [
             types.TextContent(
                 type="text",
@@ -194,10 +233,37 @@ async def handle_call_tool(
         raise ValueError(f"Unknown tool: {name}")
 
 
+def is_safe_url(url: str) -> bool:
+    """Return False if the URL points to a private, loopback, or reserved address.
+    validación de URLs para evitar ataques SSRF (Server-Side Request Forgery)
+    """
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        if hostname in ("localhost", "127.0.0.1", "::1"):
+            return False
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_reserved:
+                return False
+        except ValueError:
+            pass  # Not an IP address, may be a domain
+        return True
+    except Exception:
+        return False
+
+
 async def _analyze_path(path: str) -> dict:
     """
-    Analiza un archivo o directorio local.
-    Si es archivo, devuelve info básica. Si es directorio, analiza todos los archivos dentro.
+    Analyze a local file or directory.
+    If file, returns basic info. If directory, analyzes all files inside.
+    Limits file size to MAX_FILE_SIZE.
+
+    Example:
+        result = await _analyze_path('/path/to/file.txt')
+        print(result)
     """
     if not os.path.exists(path):
         return {"error": f"Path not found: {path}"}
@@ -216,19 +282,31 @@ async def _analyze_path(path: str) -> dict:
 
 async def _analyze_url(url: str) -> dict:
     """
-    Descarga y analiza el contenido de una URL (texto o binario).
+    Download and analyze the content of a URL (text or binary).
+    Limits download size to MAX_URL_SIZE.
+
+    Example:
+        result = await _analyze_url('https://example.com/file.txt')
+        print(result)
     """
+    if not is_safe_url(url):
+        return {"error": "URL not allowed for security reasons."}
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url)
+        resp = await client.get(url, follow_redirects=True)
+        content_length = int(resp.headers.get("content-length", 0))
+        if content_length > MAX_URL_SIZE:
+            return {"error": f"Remote file too large (>{MAX_URL_SIZE // (1024*1024)} MB)"}
+        content_bytes = await resp.aread()
+        if len(content_bytes) > MAX_URL_SIZE:
+            return {"error": f"Downloaded file too large (>{MAX_URL_SIZE // (1024*1024)} MB)"}
         mime, _ = mimetypes.guess_type(url)
         content_type = resp.headers.get("content-type", mime or "unknown")
-        content_bytes = await resp.aread()
         if "text" in content_type:
             try:
                 text = content_bytes.decode(errors="replace")
             except UnicodeDecodeError as e:
                 return {
-                    "error": f"No se pudo decodificar el contenido como texto: {e}",
+                    "error": f"Could not decode content as text: {e}",
                     "content_type": content_type,
                     "size": len(content_bytes),
                 }
@@ -251,11 +329,18 @@ async def _analyze_url(url: str) -> dict:
 
 async def _analyze_file(path: str) -> dict:
     """
-    Analiza un archivo local.
-    Devuelve info básica sobre el archivo.
+    Analyze a local file.
+    Returns basic info about the file. Limits file size to MAX_FILE_SIZE.
+
+    Example:
+        result = await _analyze_file('/path/to/file.txt')
+        print(result)
     """
     mime, _ = mimetypes.guess_type(path)
     try:
+        size = os.path.getsize(path)
+        if size > MAX_FILE_SIZE:
+            return {"error": f"File too large (>{MAX_FILE_SIZE // (1024*1024)} MB)"}
         async with aiofiles.open(path, mode="rb") as f:
             content = await f.read()
         if mime and "text" in mime:
@@ -276,7 +361,7 @@ async def _analyze_file(path: str) -> dict:
                 "preview_bytes": content[:32].hex(),
             }
     except (OSError, UnicodeDecodeError) as e:
-        return {"error": str(e)}
+        return {"error": f"Error reading file: {e}"}
 
 
 async def main():
