@@ -9,10 +9,10 @@ Servidor MCP en Python que analiza archivos locales y URLs (texto y binario).
 Más información y ejemplos en https://github.com/modelcontextprotocol/create-python-server
 """
 
-import sys, os
-"""
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-"""
+import sys
+import os
+import traceback
+
 import mimetypes
 import aiofiles
 import httpx
@@ -300,7 +300,6 @@ async def main():
             )
     except Exception as e:
         print(f"[server error] Exception in main: {e}", file=sys.stderr)
-        import traceback
         traceback.print_exc(file=sys.stderr)
         raise
 
