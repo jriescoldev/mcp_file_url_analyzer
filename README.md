@@ -161,7 +161,27 @@ pip install -r requirements.txt
 - El archivo `.env` contiene credenciales sensibles. Asegúrate de que esté en `.gitignore`.
 
 ## Ejemplos de uso
-
+### Configuración en settings.json de VSCode
+"mcp-file-url-analyzer2": {
+                "type": "stdio",
+                "command": "wsl",
+                "args": [
+                    "bash", "-c", "cd /home/javi/prueba && .venv/bin/python -m src.mcp_file_url_analyzer.server"
+                ]
+            },
+            "mcp-file-url-analyzer": {
+                "command": "wsl",
+                "args": [
+                    "docker",
+                    "run",
+                    "--rm",
+                    "-i",
+                    "-e",
+                    "GITHUB_PERSONAL_ACCESS_TOKEN=${config:github.token}",
+                    "mcp-file-url-analyzer"
+                  ]            
+                  },
+                
 ### Analizar un archivo local
 ```python
 from mcp.client import MCPClient
@@ -183,6 +203,36 @@ print(result)
 ```
 
 - El resultado será un diccionario con información relevante según el tipo de archivo o contenido.
+
+## Ejemplo: Analizar una URL con MCP
+
+### Usando Python (MCPClient)
+
+```python
+import asyncio
+from mcp.client import MCPClient
+
+async def main():
+    client = MCPClient()
+    result = await client.tool('analyze-url', url='hhttps://www.google.com')
+    print(result)
+
+asyncio.run(main())
+```
+
+### Usando terminal (Docker)
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"tool","params":{"name":"analyze-url","arguments":{"url":"https://www.google.com"}}}' | \
+docker run --rm -i --env-file .env mcp-file-url-analyzer
+```
+
+### Usando terminal (servidor local)
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"tool","params":{"name":"analyze-url","arguments":{"url":"hhttps://www.google.com"}}}' | \
+python -m src.mcp_file_url_analyzer.server
+```
 
 ## Referencias
 - [SDK y ejemplos MCP Python](https://github.com/modelcontextprotocol/create-python-server)
