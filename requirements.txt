@@ -1,6 +1,6 @@
-aiofiles
-httpx
-pydantic
-pytest
-pytest-asyncio
-mcp>=1.6.0
+aiofiles==24.1.0
+httpx==0.28.1
+pydantic==2.11.3
+pytest==8.3.5
+pytest-asyncio==0.26.0
+mcp==1.6.0
