@@ -28,7 +28,6 @@ A modern, secure MCP server for analyzing local files and URLs (text and binary)
 - `PYTHONUNBUFFERED=1`: Para logs inmediatos en Docker.
 
 ## Troubleshooting
-- Si ves `Received request before initialization was complete`, asegúrate de enviar primero el mensaje `initialize` y esperar la respuesta antes de enviar `tools/call`.
 - Si ves `ModuleNotFoundError: No module named 'mcp'`, instala dependencias con `pip install -r requirements.txt` en un entorno virtual.
 - Para debuggear logs en Docker, revisa los mensajes `[mcp-file-url-analyzer]` y usa el script Python para flujo correcto.
 
@@ -78,6 +77,8 @@ docker run --rm -i --env-file .env mcp-file-url-analyzer
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"analyze-url","arguments":{"url":"https://www.google.com"}}}' | \
 python -m src.mcp_file_url_analyzer.server
 ```
+
+> **Note:** For both `analyze-path` and `analyze-url`, you do not need to send an `initialize` message when calling the tool directly from Python, using the MCPClient, or from the terminal. Initialization is only required when implementing the full JSON-RPC protocol manually (not needed for typical usage).
 
 ## Run tests
 

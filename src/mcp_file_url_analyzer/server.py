@@ -17,13 +17,11 @@ Example usage:
 More information and examples at https://github.com/modelcontextprotocol/create-python-server
 """
 
-print("[mcp-file-url-analyzer] Importing dependencies and initializing server...")
-from mcp.server.fastmcp import FastMCP
 import os
 import mimetypes
-import aiofiles
-import httpx
 import logging
+import httpx
+from mcp.server.fastmcp import FastMCP
 
 # Setup logging
 logging.basicConfig(
@@ -43,15 +41,14 @@ def analyze_path(path: str) -> dict:
         return {"error": f"Path not found: {path}"}
     if os.path.isfile(path):
         return mcp.call(_analyze_file, path)
-    elif os.path.isdir(path):
+    if os.path.isdir(path):
         results = {}
         for root, _, files in os.walk(path):
-            for f in files:
-                file_path = os.path.join(root, f)
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
                 results[file_path] = mcp.call(_analyze_file, file_path)
         return results
-    else:
-        return {"error": "Path is neither file nor directory"}
+    return {"error": "Path is neither file nor directory"}
 
 # --- SSRF protection: global, reusable and tested ---
 def is_safe_url(url: str) -> bool:
@@ -72,8 +69,8 @@ def is_safe_url(url: str) -> bool:
         except ValueError:
             pass
         return True
-    except Exception as e:
-        logger.warning(f"is_safe_url: Exception for {url}: {e}")
+    except Exception as exc:
+        logger.warning(f"is_safe_url: Exception for {url}: {exc}")
         return False
 
 @mcp.tool()
@@ -98,9 +95,9 @@ def analyze_url(url: str) -> dict:
                 if "text" in content_type:
                     try:
                         text = content_bytes.decode(errors="replace")
-                    except UnicodeDecodeError as e:
+                    except UnicodeDecodeError as exc:
                         return {
-                            "error": f"Could not decode content as text: {e}",
+                            "error": f"Could not decode content as text: {exc}",
                             "content_type": content_type,
                             "size": len(content_bytes),
                         }
@@ -112,23 +109,20 @@ def analyze_url(url: str) -> dict:
                         "size": len(content_bytes),
                         "preview": text[:500],
                     }
-                else:
-                    return {
-                        "type": "binary",
-                        "content_type": content_type,
-                        "size": len(content_bytes),
-                        "preview_bytes": content_bytes[:32].hex(),
-                    }
-        except Exception as e:
-            logger.error(f"analyze_url: Exception fetching {url}: {e}")
-            return {"error": f"Failed to fetch or analyze URL: {e}"}
+                return {
+                    "type": "binary",
+                    "content_type": content_type,
+                    "size": len(content_bytes),
+                    "preview_bytes": content_bytes[:32].hex(),
+                }
+        except Exception as exc:
+            logger.error(f"analyze_url: Exception fetching {url}: {exc}")
+            return {"error": f"Failed to fetch or analyze URL: {exc}"}
     import asyncio
     try:
-        loop = asyncio.get_running_loop()
-        # If we're in an event loop, return coroutine (to be awaited)
+        asyncio.get_running_loop()
         return fetch()
     except RuntimeError:
-        # If not in an event loop, run normally
         return asyncio.run(fetch())
 
 def _get_max_file_size():
@@ -145,8 +139,8 @@ def _analyze_file(path: str) -> dict:
         size = os.path.getsize(path)
         if size > MAX_FILE_SIZE:
             return {"error": f"File too large (>" + str(MAX_FILE_SIZE // (1024*1024)) + " MB)"}
-        with open(path, mode="rb") as f:
-            content = f.read()
+        with open(path, mode="rb") as file_obj:
+            content = file_obj.read()
         if mime and "text" in mime:
             text = content.decode(errors="replace")
             return {
@@ -157,30 +151,26 @@ def _analyze_file(path: str) -> dict:
                 "size": len(content),
                 "preview": text[:500],
             }
-        else:
-            return {
-                "type": "binary",
-                "mime": mime or "unknown",
-                "size": len(content),
-                "preview_bytes": content[:32].hex(),
-            }
-    except (OSError, UnicodeDecodeError) as e:
-        return {"error": f"Error reading file: {e}"}
+        return {
+            "type": "binary",
+            "mime": mime or "unknown",
+            "size": len(content),
+            "preview_bytes": content[:32].hex(),
+        }
+    except (OSError, UnicodeDecodeError) as exc:
+        return {"error": f"Error reading file: {exc}"}
 
 if __name__ == "__main__":
     print("[mcp-file-url-analyzer] MCP server starting... (Python)")
     try:
         mcp.run()
-    except Exception as e:
+    except Exception as exc:
         import traceback
-        print(f"[mcp-file-url-analyzer] MCP server failed to start: {e}")
+        print(f"[mcp-file-url-analyzer] MCP server failed to start: {exc}")
         traceback.print_exc()
 
 # --- Handlers for testing (not used in production server) ---
 import types
-import asyncio
-from urllib.parse import urlparse
-import ipaddress
 
 async def handle_list_resources():
     # No resources supported
@@ -191,12 +181,11 @@ async def handle_call_tool(tool_name, args):
         if not args or 'path' not in args:
             raise ValueError('Missing path')
         return await _analyze_path(args['path'])
-    elif tool_name == 'analyze-url':
+    if tool_name == 'analyze-url':
         if not args or 'url' not in args:
             raise ValueError('Missing url')
         return await _analyze_url(args['url'])
-    else:
-        raise ValueError('Unknown tool')
+    raise ValueError('Unknown tool')
 
 async def handle_read_resource(uri):
     # No resources supported
@@ -220,15 +209,14 @@ async def _analyze_path(path: str):
         return {"error": f"Path not found: {path}"}
     if os.path.isfile(path):
         return _analyze_file(path)
-    elif os.path.isdir(path):
+    if os.path.isdir(path):
         results = {}
         for root, _, files in os.walk(path):
-            for f in files:
-                file_path = os.path.join(root, f)
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
                 results[file_path] = _analyze_file(file_path)
         return results
-    else:
-        return {"error": "Path is neither file nor directory"}
+    return {"error": "Path is neither file nor directory"}
 
 async def _analyze_url(url: str):
     if not is_safe_url(url):
@@ -248,9 +236,9 @@ async def _analyze_url(url: str):
             if "text" in content_type:
                 try:
                     text = content_bytes.decode(errors="replace")
-                except UnicodeDecodeError as e:
+                except UnicodeDecodeError as exc:
                     return {
-                        "error": f"Could not decode content as text: {e}",
+                        "error": f"Could not decode content as text: {exc}",
                         "content_type": content_type,
                         "size": len(content_bytes),
                     }
@@ -262,13 +250,12 @@ async def _analyze_url(url: str):
                     "size": len(content_bytes),
                     "preview": text[:500],
                 }
-            else:
-                return {
-                    "type": "binary",
-                    "content_type": content_type,
-                    "size": len(content_bytes),
-                    "preview_bytes": content_bytes[:32].hex(),
-                }
+            return {
+                "type": "binary",
+                "content_type": content_type,
+                "size": len(content_bytes),
+                "preview_bytes": content_bytes[:32].hex(),
+            }
     return await fetch()
 
 MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -287,9 +274,9 @@ __all__ = [
 ]
 
 try:
-    import os
     print(f"[mcp-file-url-analyzer] CWD: {os.getcwd()}")
     print(f"[mcp-file-url-analyzer] __file__: {__file__}")
-    print(f"[mcp-file-url-analyzer] sys.path: {__import__('sys').path}")
-except Exception as e:
-    print(f"[mcp-file-url-analyzer] Error printing debug info: {e}")
+    import sys
+    print(f"[mcp-file-url-analyzer] sys.path: {sys.path}")
+except Exception as exc:
+    print(f"[mcp-file-url-analyzer] Error printing debug info: {exc}")
