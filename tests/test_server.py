@@ -4,30 +4,24 @@ import asyncio
 import pytest
 import tempfile
 
-
 # Ensure src is in sys.path for import
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from mcp_file_url_analyzer import server
 
 @pytest.mark.asyncio
 async def test_handle_list_resources_empty():
-    """Test that listing resources returns an empty list when no notes exist."""
+    """Test that listing resources returns an empty list."""
     resources = await server.handle_list_resources()
     assert isinstance(resources, list)
     assert len(resources) == 0
 
 @pytest.mark.asyncio
-async def test_add_and_read_note():
-    """Test adding a note and reading it back by URI."""
-    await server.handle_call_tool('add-note', {'name': 'test', 'content': 'hello'})
-    content = await server.handle_read_resource('note://internal/test')
-    assert content == 'hello'
-
-@pytest.mark.asyncio
 async def test_handle_list_tools():
-    """Test that the list of tools includes 'add-note'."""
+    """Test that the list of tools includes 'analyze-path' and 'analyze-url'."""
     tools = await server.handle_list_tools()
-    assert any(t.name == 'add-note' for t in tools)
+    tool_names = [t.name for t in tools]
+    assert 'analyze-path' in tool_names
+    assert 'analyze-url' in tool_names
 
 @pytest.mark.asyncio
 async def test_analyze_path_file(tmp_path):
@@ -63,15 +57,6 @@ async def test_is_safe_url(url, expected):
     from mcp_file_url_analyzer import server
     assert server.is_safe_url(url) is expected
 
-# Note: For _analyze_url, you could mock httpx.AsyncClient for a real test.
-
-@pytest.mark.asyncio
-async def test_handle_read_resource_not_found():
-    """Test that reading a non-existent note raises ValueError."""
-    with pytest.raises(ValueError) as exc:
-        await server.handle_read_resource('note://internal/doesnotexist')
-    assert 'Note not found' in str(exc.value)
-
 @pytest.mark.asyncio
 async def test_handle_read_resource_invalid_uri():
     """Test that reading a resource with an invalid URI raises ValueError."""
@@ -92,20 +77,6 @@ async def test_handle_call_tool_invalid_tool():
     with pytest.raises(ValueError) as exc:
         await server.handle_call_tool('not-a-tool', {})
     assert 'Unknown tool' in str(exc.value)
-
-@pytest.mark.asyncio
-async def test_handle_call_tool_missing_args():
-    """Test that calling a tool with missing arguments raises ValueError."""
-    with pytest.raises(ValueError) as exc:
-        await server.handle_call_tool('add-note', None)
-    assert 'Missing arguments' in str(exc.value)
-
-@pytest.mark.asyncio
-async def test_handle_call_tool_missing_name_or_content():
-    """Test that calling add-note with missing name/content raises ValueError."""
-    with pytest.raises(ValueError) as exc:
-        await server.handle_call_tool('add-note', {'name': '', 'content': ''})
-    assert 'Missing name or content' in str(exc.value)
 
 @pytest.mark.asyncio
 async def test_analyze_url_invalid(monkeypatch):
@@ -185,15 +156,6 @@ async def test_analyze_url_binary(monkeypatch):
     assert 'preview_bytes' in result
 
 @pytest.mark.asyncio
-async def test_add_note_overwrite():
-    """Test that adding a note with the same name overwrites the previous content."""
-    server.notes.clear()
-    await server.handle_call_tool('add-note', {'name': 'dup', 'content': 'first'})
-    await server.handle_call_tool('add-note', {'name': 'dup', 'content': 'second'})
-    content = await server.handle_read_resource('note://internal/dup')
-    assert content == 'second'
-
-@pytest.mark.asyncio
 async def test_analyze_url_too_large(monkeypatch):
     """Test that analyze_url returns an error for responses exceeding the size limit (mocked)."""
     class MockResponse:
@@ -211,7 +173,6 @@ async def test_analyze_url_too_large(monkeypatch):
     monkeypatch.setattr(server.httpx, 'AsyncClient', lambda: MockClient())
     result = await server._analyze_url('http://example.com/huge.txt')
     assert 'too large' in result['error'].lower()
-
 
 @pytest.mark.asyncio
 async def test_analyze_url_real(monkeypatch):

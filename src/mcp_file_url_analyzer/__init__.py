@@ -13,11 +13,6 @@ Example usage:
     # Analyze a URL
     result = await client.tool('analyze-url', url='https://example.com/file.txt')
     print(result)
-
-    # Add and read a note
-    await client.tool('add-note', name='my-note', content='hello')
-    content = await client.resource('note://my-note')
-    print(content)
 """
 
 import asyncio

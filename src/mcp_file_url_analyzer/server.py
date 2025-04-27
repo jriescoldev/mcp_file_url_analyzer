@@ -36,14 +36,6 @@ print("[mcp-file-url-analyzer] FastMCP and dependencies imported successfully.")
 
 mcp = FastMCP("mcp-file-url-analyzer")
 
-notes: dict[str, str] = {}
-
-@mcp.tool()
-def add_note(name: str, content: str) -> str:
-    """Add a new note."""
-    notes[name] = content
-    return f"Added note '{name}' with content: {content}"
-
 @mcp.tool()
 def analyze_path(path: str) -> dict:
     """Analyze a local file or directory (text or binary)."""
@@ -97,10 +89,10 @@ def analyze_url(url: str) -> dict:
                 resp = await client.get(url, follow_redirects=True, timeout=10)
                 content_length = int(resp.headers.get("content-length", 0))
                 if content_length > MAX_URL_SIZE:
-                    return {"error": f"Remote file too large (>{MAX_URL_SIZE // (1024*1024)} MB)"}
+                    return {"error": f"Remote file too large (>" + str(MAX_URL_SIZE // (1024*1024)) + " MB)"}
                 content_bytes = await resp.aread()
                 if len(content_bytes) > MAX_URL_SIZE:
-                    return {"error": f"Downloaded file too large (>{MAX_URL_SIZE // (1024*1024)} MB)"}
+                    return {"error": f"Downloaded file too large (>" + str(MAX_URL_SIZE // (1024*1024)) + " MB)"}
                 mime, _ = mimetypes.guess_type(url)
                 content_type = resp.headers.get("content-type", mime or "unknown")
                 if "text" in content_type:
@@ -139,13 +131,6 @@ def analyze_url(url: str) -> dict:
         # If not in an event loop, run normally
         return asyncio.run(fetch())
 
-@mcp.resource("note://{name}")
-def get_note(name: str) -> str:
-    """Get a note by name."""
-    if name in notes:
-        return notes[name]
-    raise ValueError(f"Note not found: {name}")
-
 def _get_max_file_size():
     try:
         return int(os.environ.get("MAX_FILE_SIZE", 5 * 1024 * 1024))
@@ -159,7 +144,7 @@ def _analyze_file(path: str) -> dict:
     try:
         size = os.path.getsize(path)
         if size > MAX_FILE_SIZE:
-            return {"error": f"File too large (>{MAX_FILE_SIZE // (1024*1024)} MB)"}
+            return {"error": f"File too large (>" + str(MAX_FILE_SIZE // (1024*1024)) + " MB)"}
         with open(path, mode="rb") as f:
             content = f.read()
         if mime and "text" in mime:
@@ -198,19 +183,11 @@ from urllib.parse import urlparse
 import ipaddress
 
 async def handle_list_resources():
-    # Only notes are supported as resources
-    return [f"note://internal/{name}" for name in notes]
+    # No resources supported
+    return []
 
 async def handle_call_tool(tool_name, args):
-    if tool_name == 'add-note':
-        if not args:
-            raise ValueError('Missing arguments')
-        name = args.get('name')
-        content = args.get('content')
-        if not name or not content:
-            raise ValueError('Missing name or content')
-        return add_note(name, content)
-    elif tool_name == 'analyze-path':
+    if tool_name == 'analyze-path':
         if not args or 'path' not in args:
             raise ValueError('Missing path')
         return await _analyze_path(args['path'])
@@ -222,17 +199,12 @@ async def handle_call_tool(tool_name, args):
         raise ValueError('Unknown tool')
 
 async def handle_read_resource(uri):
-    if uri.startswith('note://internal/'):
-        name = uri.split('/')[-1]
-        if name in notes:
-            return notes[name]
-        raise ValueError('Note not found')
+    # No resources supported
     raise ValueError('Unsupported URI')
 
 async def handle_list_tools():
     Tool = types.SimpleNamespace
     return [
-        Tool(name='add-note'),
         Tool(name='analyze-path'),
         Tool(name='analyze-url'),
     ]
@@ -267,10 +239,10 @@ async def _analyze_url(url: str):
             resp = await client.get(url, follow_redirects=True)
             content_length = int(resp.headers.get("content-length", 0))
             if content_length > MAX_URL_SIZE:
-                return {"error": f"Remote file too large (>{MAX_URL_SIZE // (1024*1024)} MB)"}
+                return {"error": f"Remote file too large (>" + str(MAX_URL_SIZE // (1024*1024)) + " MB)"}
             content_bytes = await resp.aread()
             if len(content_bytes) > MAX_URL_SIZE:
-                return {"error": f"Downloaded file too large (>{MAX_URL_SIZE // (1024*1024)} MB)"}
+                return {"error": f"Downloaded file too large (>" + str(MAX_URL_SIZE // (1024*1024)) + " MB)"}
             mime, _ = mimetypes.guess_type(url)
             content_type = resp.headers.get("content-type", mime or "unknown")
             if "text" in content_type:

@@ -6,7 +6,6 @@ A modern, secure MCP server for analyzing local files and URLs (text and binary)
 
 - Analyze local files, directories, and URLs (text or binary)
 - SSRF protection and file/URL size limits
-- Custom note:// URI scheme for note storage
 - Docker support for easy deployment
 - Comprehensive async unit tests
 - Compatible with Python >=3.12
@@ -16,12 +15,11 @@ A modern, secure MCP server for analyzing local files and URLs (text and binary)
 |----------------|---------------------------------------------|--------------------------|
 | analyze-path   | Analyze a local file or directory           | path: str                |
 | analyze-url    | Download and analyze a URL (text or binary) | url: str                 |
-| add-note       | Add a note to the server (in memory)        | name: str, content: str  |
 
 ## Resources summary
 | Resource URI      | Description                |
 |-------------------|---------------------------|
-| note://{name}     | Access a note by name      |
+| *(none)*          |                           |
 
 ## Variables de entorno soportadas
 - `.env` (no se sube al repo):
@@ -67,14 +65,6 @@ result = await client.tool('analyze-url', url='https://example.com/file.txt')
 print(result)
 # Output example:
 # {'type': 'text', 'content_type': 'text/plain', 'lines': 10, 'words': 100, 'size': 456, 'preview': 'First 500 chars...'}
-```
-
-### Add and read a note (Python)
-```python
-await client.tool('add-note', name='my-note', content='hello world')
-content = await client.resource('note://my-note')
-print(content)
-# Output: hello world
 ```
 
 ### Analyze a file from the terminal (Docker)
