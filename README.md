@@ -65,21 +65,6 @@ print(result)
 # Output example:
 # {'type': 'text', 'content_type': 'text/plain', 'lines': 10, 'words': 100, 'size': 456, 'preview': 'First 500 chars...'}
 ```
-
-### Analyze a file from the terminal (Docker)
-```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"analyze-path","arguments":{"path":"/path/to/file.txt"}}}' | \
-docker run --rm -i --env-file .env mcp-file-url-analyzer
-```
-
-### Analyze a URL from the terminal (local server)
-```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"analyze-url","arguments":{"url":"https://www.google.com"}}}' | \
-python -m src.mcp_file_url_analyzer.server
-```
-
-> **Note:** For both `analyze-path` and `analyze-url`, you do not need to send an `initialize` message when calling the tool directly from Python, using the MCPClient, or from the terminal. Initialization is only required when implementing the full JSON-RPC protocol manually (not needed for typical usage).
-
 ## Run tests
 
 ```bash

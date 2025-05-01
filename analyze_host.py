@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Python script to interact with the MCP server via Docker (stdio protocol).
 Sends 'tools/call' to analyze a URL (no initialize message needed).
@@ -21,36 +20,31 @@ TOOL_MSG = {
     }
 }
 
-# Start the Docker container as a subprocess
-proc = subprocess.Popen(
+# Start the Docker container as a subprocess using a context manager
+with subprocess.Popen(
     ["docker", "run", "--rm", "-i", "--env-file", ".env", "mcp-file-url-analyzer"],
     stdin=subprocess.PIPE,
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     text=True,
     bufsize=1
-)
+) as proc:
+    # Send tools/call
+    print("[client] Sending tools/call (analyze-url)...")
+    proc.stdin.write(json.dumps(TOOL_MSG) + "\n")
+    proc.stdin.flush()
 
-# Send tools/call
-print("[client] Sending tools/call (analyze-url)...")
-proc.stdin.write(json.dumps(TOOL_MSG) + "\n")
-proc.stdin.flush()
-
-# Read and print the response to tools/call
-while True:
-    line = proc.stdout.readline()
-    if not line:
-        break
-    try:
-        resp = json.loads(line)
-        if resp.get("id") == 1:
-            print("[server] Response to tools/call:")
-            pprint(resp)
+    # Read and print the response to tools/call
+    while True:
+        line = proc.stdout.readline()
+        if not line:
             break
-    except Exception:
-        print("[server]", line.strip())
-        continue
-
-proc.stdin.close()
-proc.stdout.close()
-proc.wait()
+        try:
+            resp = json.loads(line)
+            if resp.get("id") == 1:
+                print("[server] Response to tools/call:")
+                pprint(resp)
+                break
+        except json.JSONDecodeError:
+            print("[server]", line.strip())
+            continue
