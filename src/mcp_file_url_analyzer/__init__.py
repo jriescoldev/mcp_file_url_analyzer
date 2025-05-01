@@ -1,7 +1,8 @@
+
 """
 Entry point for the mcp-file-url-analyzer package.
 
-- Requires Python >=3.12
+- Requires Python 3.13
 - See README.md for installation, usage, and security notes
 
 Example usage:

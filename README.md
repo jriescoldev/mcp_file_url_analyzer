@@ -8,7 +8,7 @@ A modern, secure MCP server for analyzing local files and URLs (text and binary)
 - SSRF protection and file/URL size limits
 - Docker support for easy deployment
 - Comprehensive async unit tests
-- Compatible with Python >=3.12
+- Compatible with Python >=3.13
 
 ## Tools summary
 | Tool           | Description                                 | Arguments                |
@@ -100,6 +100,8 @@ Example for `.vscode/mcp.json`:
 - pydantic==2.11.3
 - pytest==8.3.5
 - pytest-asyncio==0.26.0
+
+**Requires Python 3.13**
 
 ## References
 - [MCP Python SDK & Examples](https://github.com/modelcontextprotocol/create-python-server)

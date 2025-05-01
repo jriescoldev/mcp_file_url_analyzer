@@ -3,7 +3,7 @@ name = "mcp-file-url-analyzer"
 version = "0.1.0"
 description = "Servidor MCP que analiza archivos locales o URLs proporcionadas"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "aiofiles==24.1.0",
     "httpx==0.28.1",
