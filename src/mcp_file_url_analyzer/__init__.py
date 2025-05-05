@@ -1,20 +1,27 @@
+
 """
-MCP file URL analyzer package entry point.
+Entry point for the mcp-file-url-analyzer package.
 
-- Requiere Python >=3.12
-- Instala dependencias con `pip install -r requirements.txt`
-- Ejecuta el servidor con `python -m src.mcp_file_url_analyzer.server`
-- El archivo `.env` debe estar en `.gitignore` y nunca subirse a repositorios públicos.
+- Requires Python 3.13
+- See README.md for installation, usage, and security notes
 
-Más información y ejemplos en https://github.com/modelcontextprotocol/create-python-server
+Example usage:
+    from mcp.client import MCPClient
+    client = MCPClient()
+    result = await client.tool('analyze-path', path='/path/to/file.txt')
+    print(result)
+
+    # Analyze a URL
+    result = await client.tool('analyze-url', url='https://example.com/file.txt')
+    print(result)
 """
 
 import asyncio
 
+from . import server
+
 def main():
     """Main entry point for the package."""
-    from . import server
-
-    asyncio.run(server.main())
+    server.mcp.run()
 
 __all__ = ['main', 'server']

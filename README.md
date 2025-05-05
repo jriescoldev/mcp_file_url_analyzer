@@ -1,188 +1,113 @@
 # mcp-file-url-analyzer MCP server
 
-Servidor MCP que analiza archivos locales o URLs proporcionadas
+A modern, secure MCP server for analyzing local files and URLs (text and binary) using the latest MCP Python SDK (FastMCP).
 
-## Components
+## Features
 
-### Resources
+- Analyze local files, directories, and URLs (text or binary)
+- SSRF protection and file/URL size limits
+- Docker support for easy deployment
+- Comprehensive async unit tests
+- Compatible with Python >=3.13
 
-The server implements a simple note storage system with:
-- Custom note:// URI scheme for accessing individual notes
-- Each note resource has a name, description and text/plain mimetype
+## Tools summary
+| Tool           | Description                                 | Arguments                |
+|----------------|---------------------------------------------|--------------------------|
+| analyze-path   | Analyze a local file or directory           | path: str                |
+| analyze-url    | Download and analyze a URL (text or binary) | url: str                 |
 
-### Prompts
+## Resources summary
+| Resource URI      | Description                |
+|-------------------|---------------------------|
+| *(none)*          |                           |
 
-The server provides a single prompt:
-- summarize-notes: Creates summaries of all stored notes
-  - Optional "style" argument to control detail level (brief/detailed)
-  - Generates prompt combining all current notes with style preference
+## Variables de entorno soportadas
+- `.env` (no se sube al repo):
+  - Variables secretas o de configuración opcional.
+- `MAX_FILE_SIZE` (opcional, bytes): Límite de tamaño de archivo/URL (por defecto 5MB).
+- `PYTHONUNBUFFERED=1`: Para logs inmediatos en Docker.
 
-### Tools
+## Troubleshooting
+- Si ves `ModuleNotFoundError: No module named 'mcp'`, instala dependencias con `pip install -r requirements.txt` en un entorno virtual.
+- Para debuggear logs en Docker, revisa los mensajes `[mcp-file-url-analyzer]` y usa el script Python para flujo correcto.
 
-The server implements one tool:
-- add-note: Adds a new note to the server
-  - Takes "name" and "content" as required string arguments
-  - Updates server state and notifies clients of resource changes
-
-## Configuration
-
-[TODO: Add configuration details specific to your implementation]
-
-## Quickstart
-
-### Install
-
-#### Claude Desktop
-
-On MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
-On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
-
-<details>
-  <summary>Development/Unpublished Servers Configuration</summary>
-  ```
-  "mcpServers": {
-    "mcp-file-url-analyzer": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/home/javi/prueba",
-        "run",
-        "mcp-file-url-analyzer"
-      ]
-    }
-  }
-  ```
-</details>
-
-<details>
-  <summary>Published Servers Configuration</summary>
-  ```
-  "mcpServers": {
-    "mcp-file-url-analyzer": {
-      "command": "uvx",
-      "args": [
-        "mcp-file-url-analyzer"
-      ]
-    }
-  }
-  ```
-</details>
-
-## Development
-
-### Building and Publishing
-
-To prepare the package for distribution:
-
-1. Sync dependencies and update lockfile:
-```bash
-uv sync
-```
-
-2. Build package distributions:
-```bash
-uv build
-```
-
-This will create source and wheel distributions in the `dist/` directory.
-
-3. Publish to PyPI:
-```bash
-uv publish
-```
-
-Note: You'll need to set PyPI credentials via environment variables or command flags:
-- Token: `--token` or `UV_PUBLISH_TOKEN`
-- Or username/password: `--username`/`UV_PUBLISH_USERNAME` and `--password`/`UV_PUBLISH_PASSWORD`
-
-### Debugging
-
-Since MCP servers run over stdio, debugging can be challenging. For the best debugging
-experience, we strongly recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector).
-
-
-You can launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) with this command:
+## Ejemplo de uso del script Python
 
 ```bash
-npx @modelcontextprotocol/inspector uv --directory /home/javi/prueba run mcp-file-url-analyzer
+python3 analyze-hosts.py https://www.rstic.es/
 ```
+Esto analizará la URL indicada y mostrará la respuesta formateada.
 
+## Practical Examples
 
-Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
-
-## Análisis de archivos y URLs
-
-Este servidor MCP permite analizar archivos individuales, directorios completos y URLs (tanto texto como binario). Usa los comandos MCP:
-
-- `analyze_path(path: str)`: Analiza un archivo o directorio local. Si es directorio, recorre todos los archivos.
-- `analyze_url(url: str)`: Descarga y analiza el contenido de la URL (texto o binario).
-
-El análisis de texto muestra número de líneas, palabras, tamaño y un preview. El análisis binario muestra tamaño, tipo y preview en hexadecimal.
-
-## Requisitos
-
-Este proyecto requiere Python 3.12 o superior. Instala las dependencias con:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Estructura del proyecto
-
-- `src/mcp_file_url_analyzer/server.py`: Código principal del servidor MCP.
-- `requirements.txt`: Dependencias del entorno.
-- `pyproject.toml`: Configuración de empaquetado y metadatos.
-- `.env`: Variables de entorno sensibles (no subir a repositorios públicos).
-
-## Ejecución local
-
-1. Activa el entorno virtual:
-   ```bash
-   source .venv/bin/activate
-   ```
-2. Instala las dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Ejecuta el servidor MCP:
-   ```bash
-   python -m src.mcp_file_url_analyzer.server
-   ```
-
-## Dependencias principales
-
-- mcp>=1.6.0
-- aiofiles
-- httpx
-- pydantic
-
-## Notas de seguridad
-
-- El archivo `.env` contiene credenciales sensibles. Asegúrate de que esté en `.gitignore`.
-
-## Ejemplos de uso
-
-### Analizar un archivo local
+### Analyze a local file (Python)
 ```python
 from mcp.client import MCPClient
 client = MCPClient()
-result = await client.tool('analyze-path', path='/ruta/al/archivo.txt')
+result = await client.tool('analyze-path', path='/path/to/file.txt')
 print(result)
+# Output example:
+# {'type': 'text', 'mime': 'text/plain', 'lines': 42, 'words': 300, 'size': 1234, 'preview': 'First 500 chars...'}
 ```
 
-### Analizar un directorio local
+### Analyze a directory (Python)
 ```python
-result = await client.tool('analyze-path', path='/ruta/al/directorio')
+result = await client.tool('analyze-path', path='/path/to/dir')
 print(result)
+# Output example:
+# {'/path/to/dir/file1.txt': {...}, '/path/to/dir/file2.bin': {...}}
 ```
 
-### Analizar una URL (texto o binario)
+### Analyze a URL (Python)
 ```python
-result = await client.tool('analyze-url', url='https://ejemplo.com/archivo.txt')
+result = await client.tool('analyze-url', url='https://example.com/file.txt')
 print(result)
+# Output example:
+# {'type': 'text', 'content_type': 'text/plain', 'lines': 10, 'words': 100, 'size': 456, 'preview': 'First 500 chars...'}
+```
+## Run tests
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pytest
 ```
 
-- El resultado será un diccionario con información relevante según el tipo de archivo o contenido.
+## VSCode Integration
 
-## Referencias
-- [SDK y ejemplos MCP Python](https://github.com/modelcontextprotocol/create-python-server)
+Example for `.vscode/mcp.json`:
+```json
+{
+  "servers": {
+    "mcp-file-url-analyzer": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "--env-file", "${workspaceFolder}/.env",
+        "mcp-file-url-analyzer"
+      ]
+    }
+  }
+}
+```
+
+## Main Dependencies (see requirements.txt for full list)
+- mcp==1.6.0
+- aiofiles==24.1.0
+- httpx==0.28.1
+- pydantic==2.11.3
+- pytest==8.3.5
+- pytest-asyncio==0.26.0
+
+**Requires Python 3.13**
+
+## References
+- [MCP Python SDK & Examples](https://github.com/modelcontextprotocol/create-python-server)
+
+## Bash example: MCP stdio protocol (Docker)
+See the file `analyze-hosts.sh` in the project root for a ready-to-use example.
+
+## Python example: MCP stdio protocol (Docker)
+See the file `analyze-hosts.py` in the project root for a ready-to-use Python script.

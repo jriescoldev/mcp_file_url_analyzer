@@ -3,8 +3,15 @@ name = "mcp-file-url-analyzer"
 version = "0.1.0"
 description = "Servidor MCP que analiza archivos locales o URLs proporcionadas"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [ "mcp>=1.6.0",]
+requires-python = ">=3.13"
+dependencies = [
+    "aiofiles==24.1.0",
+    "httpx==0.28.1",
+    "pydantic==2.11.3",
+    "pytest==8.3.5",
+    "pytest-asyncio==0.26.0",
+    "mcp>=1.6.0"
+]
 
 [build-system]
 requires = [ "hatchling",]
