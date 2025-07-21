@@ -27,6 +27,14 @@ A modern, secure MCP server for analyzing local files and URLs (text and binary)
 - `MAX_FILE_SIZE` (opcional, bytes): Límite de tamaño de archivo/URL (por defecto 5MB).
 - `PYTHONUNBUFFERED=1`: Para logs inmediatos en Docker.
 
+## Initialize MCP Enviroment tests
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m src.mcp_file_url_analyzer.server
+```
 ## Troubleshooting
 - Si ves `ModuleNotFoundError: No module named 'mcp'`, instala dependencias con `pip install -r requirements.txt` en un entorno virtual.
 - Para debuggear logs en Docker, revisa los mensajes `[mcp-file-url-analyzer]` y usa el script Python para flujo correcto.
@@ -34,7 +42,7 @@ A modern, secure MCP server for analyzing local files and URLs (text and binary)
 ## Ejemplo de uso del script Python
 
 ```bash
-python3 analyze-hosts.py https://www.rstic.es/
+python3 analyze_host.py https://www.rstic.es/
 ```
 Esto analizará la URL indicada y mostrará la respuesta formateada.
 
@@ -92,9 +100,19 @@ Example for `.vscode/mcp.json`:
   }
 }
 ```
-
+# Inside WSL
+```json
+"mcp-file-url-analyzer": {
+      "type": "stdio",
+      "command": "wsl",
+      "args": [
+        "docker", "run", "--rm", "-i",
+        "mcp-file-url-analyzer"
+      ]
+    }
+```
 ## Main Dependencies (see requirements.txt for full list)
-- mcp==1.6.0
+- mcp>=1.10.0
 - aiofiles==24.1.0
 - httpx==0.28.1
 - pydantic==2.11.3
@@ -106,8 +124,12 @@ Example for `.vscode/mcp.json`:
 ## References
 - [MCP Python SDK & Examples](https://github.com/modelcontextprotocol/create-python-server)
 
+## Build Docker Image
+docker build -t mcp-file-url-analyzer:latest .
+
 ## Bash example: MCP stdio protocol (Docker)
 See the file `analyze-hosts.sh` in the project root for a ready-to-use example.
 
 ## Python example: MCP stdio protocol (Docker)
 See the file `analyze-hosts.py` in the project root for a ready-to-use Python script.
+
