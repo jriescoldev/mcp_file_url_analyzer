@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
-FROM python:3.13-slim
+FROM python:3.13.5-alpine3.22
 
 WORKDIR /app
 
 # Install system dependencies (if needed)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+#RUN apk add --no-cache \
+#    build-base \
+#    && rm -rf /var/cache/apk/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt pyproject.toml ./

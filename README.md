@@ -22,6 +22,7 @@ A modern, secure MCP server for analyzing local files and URLs (text and binary)
 | *(none)*          |                           |
 
 ## Variables de entorno soportadas
+- rename `.env.example` to `.env` 
 - `.env` (no se sube al repo):
   - Variables secretas o de configuración opcional.
 - `MAX_FILE_SIZE` (opcional, bytes): Límite de tamaño de archivo/URL (por defecto 5MB).
@@ -100,7 +101,7 @@ Example for `.vscode/mcp.json`:
   }
 }
 ```
-# Inside WSL
+## Inside WSL
 ```json
 "mcp-file-url-analyzer": {
       "type": "stdio",
@@ -127,9 +128,28 @@ Example for `.vscode/mcp.json`:
 ## Build Docker Image
 docker build -t mcp-file-url-analyzer:latest .
 
+## Run Docker Image
+docker run --rm -i --env-file .env mcp-file-url-analyzer
+
 ## Bash example: MCP stdio protocol (Docker)
 See the file `analyze-hosts.sh` in the project root for a ready-to-use example.
 
 ## Python example: MCP stdio protocol (Docker)
 See the file `analyze-hosts.py` in the project root for a ready-to-use Python script.
 
+ ## Upload to Container Repository
+ ### Upload to GitHub Container Registry
+
+Authenticate Docker with GitHub and Create a GitHub personal access token (PAT) with write:packages and read:packages permissions.
+```bash
+echo <YOUR_GITHUB_PAT> | docker login ghcr.io -u <your-github-username> --password-stdin
+```
+Create Docker Image and upload it to GitHub Container Registry (ghcr.io)
+docker build -t ghcr.io/<your-github-username>/<image-name>:<tag> .
+```bash
+docker build -t ghcr.io/jriescoldev/mcp-file-url-analyzer:latest .
+```
+Push the image to GitHub Container Registry
+```bash
+docker push ghcr.io/<your-github-username>/<image-name>:<tag>
+```
