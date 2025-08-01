@@ -1,7 +1,7 @@
 [project]
 name = "mcp-file-url-analyzer"
 version = "0.1.0"
-description = "Servidor MCP que analiza archivos locales o URLs proporcionadas"
+description = "MCP server that analyzes local files or provided URLs."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -10,7 +10,7 @@ dependencies = [
     "pydantic==2.11.3",
     "pytest==8.3.5",
     "pytest-asyncio==0.26.0",
-    "mcp>=1.6.0"
+    "mcp>=1.10.0"
 ]
 
 [build-system]

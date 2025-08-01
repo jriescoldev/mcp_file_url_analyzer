@@ -32,8 +32,10 @@ async def test_analyze_path_file(tmp_path):
     file_path = tmp_path / 'test.txt'
     file_path.write_text('hello world')
     result = await server.analyze_path_async(str(file_path))
-    assert result['type'] == 'text'
-    assert 'hello' in result['preview']
+    data = result.model_dump() if hasattr(result, 'model_dump') else result
+    assert 'error' not in data
+    assert data['type'] == 'text'
+    assert 'hello' in data['preview']
 
 
 @pytest.mark.asyncio
@@ -42,7 +44,8 @@ async def test_analyze_path_too_large(tmp_path):
     file_path = tmp_path / 'big.txt'
     file_path.write_bytes(b'a' * (server.MAX_FILE_SIZE + 1))
     result = await server.analyze_path_async(str(file_path))
-    assert 'too large' in result['error']
+    data = result.model_dump() if hasattr(result, 'model_dump') else result
+    assert 'too large' in data['error']
 
 
 @pytest.mark.asyncio
@@ -98,7 +101,8 @@ async def test_analyze_url_invalid():
 async def test_analyze_path_not_found():
     """Test that analyzing a non-existent file returns an error."""
     result = await server.analyze_path_async('/path/does/not/exist.txt')
-    assert 'not found' in result['error'].lower()
+    data = result.model_dump() if hasattr(result, 'model_dump') else result
+    assert 'not found' in data['error'].lower()
 
 
 @pytest.mark.asyncio
@@ -107,10 +111,10 @@ async def test_analyze_path_not_file_nor_dir(tmp_path):
     broken = tmp_path / 'broken'
     broken.symlink_to('/does/not/exist')
     result = await server.analyze_path_async(str(broken))
-    # Accept both possible error messages
+    data = result.model_dump() if hasattr(result, 'model_dump') else result
     assert (
-        'neither file nor directory' in result['error'].lower()
-        or 'not found' in result['error'].lower()
+        'neither file nor directory' in data['error'].lower()
+        or 'not found' in data['error'].lower()
     )
 
 
@@ -122,10 +126,14 @@ async def test_analyze_path_directory(tmp_path):
     file1.write_text('hello world')
     file2.write_bytes(b'\x00\x01\x02')
     result = await server.analyze_path_async(str(tmp_path))
-    assert str(file1) in result
-    assert str(file2) in result
-    assert result[str(file1)]['type'] == 'text'
-    assert result[str(file2)]['type'] == 'binary'
+    data = result.model_dump() if hasattr(result, 'model_dump') else result
+    files = data['files']
+    assert str(file1) in files
+    assert str(file2) in files
+    assert 'error' not in files[str(file1)]
+    assert 'error' not in files[str(file2)]
+    assert files[str(file1)]['type'] == 'text'
+    assert files[str(file2)]['type'] == 'binary'
 
 
 @pytest.mark.asyncio
@@ -287,12 +295,10 @@ async def test_analyze_url_timeout(monkeypatch):
     monkeypatch.setattr(server.httpx, 'AsyncClient', SlowClient)
     try:
         # Use the public handler to ensure error is caught and returned as dict
-        result = server.analyze_url('http://example.com/slow')
+        result = server.analyze_url({'url': 'http://example.com/slow'})
         if asyncio.iscoroutine(result):
             result = await result
         assert isinstance(result, dict)
-        assert 'timeout' in result.get('error', '').lower(
-        ) or 'failed' in result.get('error', '').lower()
+        assert 'timeout' in result.get('error', '').lower() or 'failed' in result.get('error', '').lower()
     except server.httpx.TimeoutException:
-        pytest.skip(
-            "TimeoutException not handled by analyze_url; test skipped.")
+        pytest.skip("TimeoutException not handled by analyze_url; test skipped.")

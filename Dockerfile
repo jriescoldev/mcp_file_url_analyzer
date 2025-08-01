@@ -3,10 +3,8 @@ FROM python:3.13.5-alpine3.22
 
 WORKDIR /app
 
-# Install system dependencies (if needed)
-#RUN apk add --no-cache \
-#    build-base \
-#    && rm -rf /var/cache/apk/*
+# Install system dependencies for Alpine and Python wheels (uncomment if needed)
+# RUN apk add --no-cache build-base gcc musl-dev libffi-dev openssl-dev python3-dev cargo rust
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt pyproject.toml ./

@@ -17,6 +17,7 @@ Example usage:
 More information and examples at https://github.com/modelcontextprotocol/create-python-server
 """
 
+
 import os
 import mimetypes
 import types
@@ -25,9 +26,9 @@ import ipaddress
 import asyncio
 from urllib.parse import urlparse
 import traceback
-
 import httpx
 from mcp.server.fastmcp import FastMCP
+from pydantic import BaseModel, Field
 
 # Setup logging
 logging.basicConfig(
@@ -38,11 +39,16 @@ logger = logging.getLogger("mcp-file-url-analyzer")
 
 print("[mcp-file-url-analyzer] FastMCP and dependencies imported successfully.")
 
+
 mcp = FastMCP("mcp-file-url-analyzer")
 
+# --- Pydantic models for tool input/output ---
+
+
 @mcp.tool()
-def analyze_path(path: str) -> dict:
+def analyze_path(args: dict) -> dict:
     """Analyze a local file or directory (text or binary)."""
+    path = args["path"]
     if not os.path.exists(path):
         return {"error": f"Path not found: {path}"}
     if os.path.isfile(path):
@@ -53,7 +59,7 @@ def analyze_path(path: str) -> dict:
             for file_name in files:
                 file_path = os.path.join(root, file_name)
                 results[file_path] = _analyze_file(file_path)
-        return results
+        return {"files": results}
     return {"error": "Path is neither file nor directory"}
 
 # --- SSRF protection: global, reusable and tested ---
@@ -79,8 +85,9 @@ def is_safe_url(url: str) -> bool:
         return False
 
 @mcp.tool()
-def analyze_url(url: str) -> dict:
+def analyze_url(args: dict) -> dict:
     """Download and analyze the content of a URL (text or binary)."""
+    url = args["url"]
     if not is_safe_url(url):
         logger.warning("Blocked unsafe URL: %s", url)
         return {"error": "URL not allowed for security reasons."}
@@ -233,7 +240,7 @@ async def _analyze_path(path: str):
             for file_name in files:
                 file_path = os.path.join(root, file_name)
                 results[file_path] = _analyze_file(file_path)
-        return results
+        return {"files": results}
     return {"error": "Path is neither file nor directory"}
 
 async def _analyze_url(url: str):
