@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.13.5-alpine3.23
+FROM python:3.14.2-alpine3.23
 
 WORKDIR /app
 
@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY src/ ./src/
+COPY tests/ ./tests/
 
 # Optionally copy README and other docs
 COPY README.md ./
